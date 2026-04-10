@@ -1,0 +1,22 @@
+package com.example.demo.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.demo.model.Price;
+import com.example.demo.repository.PriceRepository;
+
+@Service
+public class PricingService {
+
+    @Autowired
+    private PriceRepository repo;
+
+    public Price get(Long pid) {
+        return repo.findById(pid).orElse(null);
+    }
+
+    public Price add(Price p) {
+        return repo.save(p);
+    }
+}

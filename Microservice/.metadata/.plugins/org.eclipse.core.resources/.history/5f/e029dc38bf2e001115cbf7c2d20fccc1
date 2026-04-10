@@ -1,0 +1,18 @@
+package com.example.demo.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.demo.model.Inventory;
+import com.example.demo.repository.InventoryRepository;
+
+@Service
+public class InventoryService {
+
+    @Autowired
+    private InventoryRepository repo;
+
+    public Inventory getInventory(Long pid) {
+        return repo.findById(pid).orElse(null);
+    }
+}

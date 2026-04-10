@@ -1,0 +1,59 @@
+
+
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.demo.service.ProductCatalog;
+
+@Service
+public class RecommendationService {
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    public List<Long> recommend(List<Long> pids) {
+
+        List<Long> recommendations = new ArrayList<>();
+
+        if (pids == null || pids.isEmpty()) {
+            return recommendations;
+        }
+
+        for (Long pid : pids) {
+
+            // 🔹 Get product details
+            ProductCatalog product = restTemplate.getForObject(
+                    "http://localhost:8084/catalogs/products/" + pid,
+                    ProductCatalog.class
+            );
+
+            if (product == null) continue;
+
+            String category = product.getPcategory();
+
+            // 🔹 Get all products of same category
+            ProductCatalog[] similarProducts = restTemplate.getForObject(
+                    "http://localhost:8084/catalogs/category/" + category,
+                    ProductCatalog[].class
+            );
+
+            if (similarProducts == null) continue;
+
+            for (ProductCatalog p : similarProducts) {
+
+                // ❗ Avoid recommending same product
+                if (!p.getPid().equals(pid)) {
+                    recommendations.add(p.getPid());
+                }
+            }
+        }
+
+        return recommendations;
+    }
+}

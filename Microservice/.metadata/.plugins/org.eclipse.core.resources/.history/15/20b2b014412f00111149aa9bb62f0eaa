@@ -1,0 +1,70 @@
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.demo.model.Cart;
+import com.example.demo.model.ProductCatalog;
+import com.example.demo.repository.CartRepository;
+
+@Service
+public class CartService {
+
+    @Autowired
+    private CartRepository repo;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    private final String CATALOG = "http://localhost:8084/catalogs/products/";
+    private final String RECOMMEND = "http://localhost:8086/recommendations";
+
+    public Cart add(Long cartId, Long pid) {
+
+        Cart cart = repo.findById(cartId).orElse(new Cart());
+        cart.setCartId(cartId);
+
+        ProductCatalog pc = restTemplate.getForObject(
+                CATALOG + pid,
+                ProductCatalog.class
+        );
+
+        cart.getProducts().put(pid, pc.getPname());
+
+        return repo.save(cart);
+    }
+
+    public Map<String, Object> get(Long cartId) {
+
+        Cart cart = repo.findById(cartId).orElse(null);
+
+        List<Long> pids = new ArrayList<>();
+        if (cart != null) {
+            pids.addAll(cart.getProducts().keySet());
+        }
+
+        List<ProductCatalog> cartItems = new ArrayList<>();
+        for (Long pid : pids) {
+            cartItems.add(restTemplate.getForObject(
+                    CATALOG + pid,
+                    ProductCatalog.class
+            ));
+        }
+
+        ProductCatalog[] rec =
+                restTemplate.postForObject(RECOMMEND, pids, ProductCatalog[].class);
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("cartItems", cartItems);
+        res.put("recommendedItems", Arrays.asList(rec));
+
+        return res;
+    }
+}

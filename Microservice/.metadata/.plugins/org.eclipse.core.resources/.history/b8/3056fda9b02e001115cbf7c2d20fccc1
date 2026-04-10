@@ -1,0 +1,37 @@
+package com.example.demo.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.demo.model.Cart;
+import com.example.demo.repository.CartRepository;
+
+@Service
+public class CartService {
+
+    @Autowired
+    private CartRepository repo;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    public Cart addToCart(Long cartId, Long pid) {
+
+        Cart cart = repo.findById(cartId).orElse(new Cart());
+        cart.setCartId(cartId);
+
+        ProductCatalog pc = restTemplate.getForObject(
+                "http://localhost:8084/catalogs/products/" + pid,
+                ProductCatalog.class
+        );
+
+        cart.getProducts().put(pid, pc.getPname());
+
+        return repo.save(cart);
+    }
+
+    public Cart getCart(Long id) {
+        return repo.findById(id).orElse(null);
+    }
+}

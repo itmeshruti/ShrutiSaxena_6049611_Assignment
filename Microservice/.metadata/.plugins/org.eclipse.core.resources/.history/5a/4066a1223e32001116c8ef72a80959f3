@@ -1,0 +1,13 @@
+spring.application.name=Cart
+
+
+server.port=8085
+#eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+spring.config.import=optional:configserver:http://localhost:8888
+resilience4j.circuitbreaker.instances.catalogService.failureRateThreshold=50
+resilience4j.circuitbreaker.instances.catalogService.waitDurationInOpenState=10s
+resilience4j.circuitbreaker.instances.catalogService.slidingWindowSize=5
+
+resilience4j.circuitbreaker.instances.recommendService.failureRateThreshold=50
+resilience4j.circuitbreaker.instances.recommendService.waitDurationInOpenState=10s
+resilience4j.circuitbreaker.instances.recommendService.slidingWindowSize=5

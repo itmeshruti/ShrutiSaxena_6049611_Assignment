@@ -1,0 +1,21 @@
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class RecommendationService {
+
+    public List<Long> recommend(List<Long> pids) {
+
+        List<Long> res = new ArrayList<>();
+
+        for (Long pid : pids) {
+            res.add(pid + 1);
+        }
+
+        return res;
+    }
+}

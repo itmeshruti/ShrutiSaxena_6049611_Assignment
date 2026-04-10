@@ -1,0 +1,15 @@
+spring.application.name=APIGateway
+server.port=8088
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+
+spring.cloud.gateway.routes[0].id=catalog-route
+spring.cloud.gateway.routes[0].uri=lb://ProductCatalog
+spring.cloud.gateway.routes[0].predicates[0]=Path=/catalogs/**
+
+spring.cloud.gateway.routes[1].id=cart-route
+spring.cloud.gateway.routes[1].uri=lb://Cart
+spring.cloud.gateway.routes[1].predicates[0]=Path=/carts/**
+
+spring.cloud.gateway.routes[2].id=recommendation-route
+spring.cloud.gateway.routes[2].uri=lb://Recommendation
+spring.cloud.gateway.routes[2].predicates[0]=Path=/recommendations/**

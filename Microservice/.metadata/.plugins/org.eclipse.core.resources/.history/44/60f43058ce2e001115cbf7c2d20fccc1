@@ -1,0 +1,82 @@
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.demo.model.Cart;
+import com.example.demo.model.ProductCatalog;
+import com.example.demo.repository.CartRepository;
+
+@Service
+public class CartService {
+
+    @Autowired
+    private CartRepository repo;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    // ✅ ADD TO CART
+    public Cart add(Long cartId, Long pid) {
+
+        Cart cart = repo.findById(cartId).orElse(new Cart());
+        cart.setCartId(cartId);
+
+        // 🔹 Get product details from Catalog
+        ProductCatalog pc = restTemplate.getForObject(
+                "http://localhost:8084/catalogs/products/" + pid,
+                ProductCatalog.class
+        );
+
+        // 🔹 Store in Map
+        cart.getProducts().put(pid, pc.getPname());
+
+        return repo.save(cart);
+    }
+
+    // ✅ GET CART + RECOMMENDATIONS
+    public Map<String, Object> get(Long cartId) {
+
+        Cart cart = repo.findById(cartId).orElse(null);
+
+        List<Long> pids = new ArrayList<>();
+        if (cart != null) {
+            pids.addAll(cart.getProducts().keySet());
+        }
+
+        // 🔹 Fetch Cart Items
+        List<ProductCatalog> cartItems = new ArrayList<>();
+        for (Long pid : pids) {
+            cartItems.add(restTemplate.getForObject(
+                    "http://localhost:8084/catalogs/products/" + pid,
+                    ProductCatalog.class));
+        }
+
+        // 🔹 Call Recommendation Service
+        List<Long> recIds = restTemplate.postForObject(
+                "http://localhost:8086/recommendations",
+                pids,
+                List.class
+        );
+
+        // 🔹 Fetch Recommended Items
+        List<ProductCatalog> recItems = new ArrayList<>();
+        for (Long pid : recIds) {
+            recItems.add(restTemplate.getForObject(
+                    "http://localhost:8084/catalogs/products/" + pid,
+                    ProductCatalog.class));
+        }
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("cartItems", cartItems);
+        res.put("recommendedItems", recItems);
+
+        return res;
+    }
+}

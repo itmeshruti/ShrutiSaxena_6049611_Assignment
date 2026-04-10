@@ -1,0 +1,54 @@
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.demo.model.Inventory;
+import com.example.demo.model.Price;
+import com.example.demo.model.Product;
+import com.example.demo.model.ProductCatalog;
+
+@Service
+public class CatalogService {
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    private final String PRODUCT = "http://Product/products/";
+    private final String PRICE = "http://Price/prices/";
+    private final String INVENTORY = "http://Inventory/inventory/";
+
+    public ProductCatalog getCatalog(Long pid) {
+
+        Product p = restTemplate.getForObject(PRODUCT + pid, Product.class);
+        Price price = restTemplate.getForObject(PRICE + pid, Price.class);
+        Inventory inv = restTemplate.getForObject(INVENTORY + pid, Inventory.class);
+
+        ProductCatalog pc = new ProductCatalog();
+        pc.setPid(pid);
+        pc.setPname(p.getPname());
+        pc.setPcategory(p.getPcategory());
+        pc.setDiscountedPrice(price.getOfferPrice());
+        pc.setNoOfItems(inv.getNoOfItemsLeft());
+
+        return pc;
+    }
+
+    public List<ProductCatalog> getByCategory(String category) {
+
+        Product[] products = restTemplate.getForObject(
+                PRODUCT + "category/" + category,
+                Product[].class
+        );
+
+        List<ProductCatalog> list = new ArrayList<>();
+        for (Product p : products) {
+            list.add(getCatalog(p.getPid()));
+        }
+        return list;
+    }
+}

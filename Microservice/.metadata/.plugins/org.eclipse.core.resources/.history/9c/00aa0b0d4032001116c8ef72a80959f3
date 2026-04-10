@@ -1,0 +1,202 @@
+//package com.example.demo.service;
+//
+//import java.util.ArrayList;
+//import java.util.Arrays;
+//import java.util.HashMap;
+//import java.util.List;
+//import java.util.Map;
+//
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.stereotype.Service;
+//import org.springframework.web.client.RestTemplate;
+//
+//import com.example.demo.model.Cart;
+//import com.example.demo.model.ProductCatalog;
+//import com.example.demo.repository.CartRepository;
+//
+//@Service
+//public class CartService {
+//
+//    @Autowired
+//    private CartRepository repo;
+//
+//    @Autowired
+//    private RestTemplate restTemplate;
+//
+//    private final String CATALOG = "http://ProductCatalog/catalogs/products/";
+//    private final String RECOMMEND = "http://Recommendation/recommendations";
+//   
+//    public Map<String, Object> add(Long cartId, Long pid) {
+//
+//        Cart cart = repo.findById(cartId).orElse(new Cart());
+//        cart.setCartId(cartId);
+//
+//        // 🔹 Fetch product from catalog
+//        ProductCatalog pc = restTemplate.getForObject(
+//                CATALOG + pid,
+//                ProductCatalog.class
+//        );
+//
+//        // 🔹 Add to cart
+//        cart.getProducts().put(pid, pc.getPname());
+//        repo.save(cart);
+//
+//        // 🔹 Prepare pid list
+//        List<Long> pids = new ArrayList<>(cart.getProducts().keySet());
+//
+//        // 🔹 Call recommendation service
+//        ProductCatalog[] rec =
+//                restTemplate.postForObject(RECOMMEND, pids, ProductCatalog[].class);
+//
+//        // 🔹 Prepare response
+//        Map<String, Object> res = new HashMap<>();
+//        res.put("message", "Product added to cart");
+////        res.put("addedProduct", pc);
+//        res.put("recommendedItems", Arrays.asList(rec));
+//
+//        return res;
+//    }
+//    public List<ProductCatalog> get(Long cartId) {
+//
+//        Cart cart = repo.findById(cartId).orElse(null);
+//
+//        List<ProductCatalog> cartItems = new ArrayList<>();
+//
+//        if (cart != null) {
+//            for (Long pid : cart.getProducts().keySet()) {
+//                cartItems.add(restTemplate.getForObject(
+//                        CATALOG + pid,
+//                        ProductCatalog.class
+//                ));
+//            }
+//        }
+//
+//        return cartItems;
+//    }
+//}
+//
+//
+
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.demo.model.Cart;
+import com.example.demo.model.ProductCatalog;
+import com.example.demo.repository.CartRepository;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
+@Service
+public class CartService {
+
+    @Autowired
+    private CartRepository repo;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    private final String CATALOG = "http://ProductCatalog/catalogs/products/";
+    private final String RECOMMEND = "http://Recommendation/recommendations";
+
+    // 🔥 ADD TO CART
+    public Map<String, Object> add(Long cartId, Long pid) {
+
+        Cart cart = repo.findById(cartId).orElse(new Cart());
+        cart.setCartId(cartId);
+
+        // ✅ Circuit Breaker for Catalog
+        ProductCatalog pc = getProduct(pid);
+
+        // 🔹 Add to cart
+        cart.getProducts().put(pid, pc.getPname());
+        repo.save(cart);
+
+        // 🔹 Prepare pid list
+        List<Long> pids = new ArrayList<>(cart.getProducts().keySet());
+
+        // ✅ Circuit Breaker for Recommendation
+        ProductCatalog[] rec = getRecommendations(pids);
+
+        // 🔹 Response
+        Map<String, Object> res = new HashMap<>();
+        res.put("message", "Product added to cart");
+        res.put("recommendedItems", Arrays.asList(rec));
+
+        return res;
+    }
+
+    // 🔥 GET CART
+    public List<ProductCatalog> get(Long cartId) {
+
+        Cart cart = repo.findById(cartId).orElse(null);
+        List<ProductCatalog> cartItems = new ArrayList<>();
+
+        if (cart != null) {
+            for (Long pid : cart.getProducts().keySet()) {
+                cartItems.add(getProduct(pid)); // ✅ CB used here also
+            }
+        }
+
+        return cartItems;
+    }
+
+    // =====================================================
+    // 🔥 CIRCUIT BREAKER METHODS
+    // =====================================================
+
+    // ✅ PRODUCT CATALOG CALL
+    @CircuitBreaker(name = "catalogService", fallbackMethod = "catalogFallback")
+    public ProductCatalog getProduct(Long pid) {
+        return restTemplate.getForObject(
+                CATALOG + pid,
+                ProductCatalog.class
+        );
+    }
+
+    // 🔻 FALLBACK FOR CATALOG
+    public ProductCatalog catalogFallback(Long pid, Exception ex) {
+
+        System.out.println("⚠️ Catalog Service DOWN! Using fallback...");
+
+        ProductCatalog pc = new ProductCatalog();
+        pc.setPid(pid);
+        pc.setPname("Fallback Product");
+        pc.setPcategory("Unavailable");
+
+        return pc;
+    }
+
+    // ✅ RECOMMENDATION CALL
+    @CircuitBreaker(name = "recommendService", fallbackMethod = "recommendFallback")
+    public ProductCatalog[] getRecommendations(List<Long> pids) {
+
+        return restTemplate.postForObject(
+                RECOMMEND,
+                pids,
+                ProductCatalog[].class
+        );
+    }
+
+    // 🔻 FALLBACK FOR RECOMMENDATION
+    public ProductCatalog[] recommendFallback(List<Long> pids, Exception ex) {
+
+        System.out.println("⚠️ Recommendation Service DOWN!");
+
+        ProductCatalog dummy = new ProductCatalog();
+        dummy.setPid(0L);
+        dummy.setPname("No Recommendations Available");
+        dummy.setPcategory("N/A");
+
+        return new ProductCatalog[]{dummy};
+    }
+}
+
