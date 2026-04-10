@@ -1,0 +1,144 @@
+<!--
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Movie App</title>
+</head>
+<body>
+
+<h1>Movie Management</h1>
+
+
+<div th:if="${errorMsg}" style="color:red;">
+    <p th:text="${errorMsg}"></p>
+</div>
+
+
+<div th:if="${msg}" style="color:blue;">
+    <p th:text="${msg}"></p>
+</div>
+
+
+<h2>Add / Update Movie</h2>
+
+<form th:action="@{/addMovie}" th:object="${movie}" method="post">
+
+   
+    <input type="hidden" th:field="*{id}">
+
+    Name:
+    <input type="text" th:field="*{name}">
+    <span style="color:red"
+          th:if="${#fields.hasErrors('name')}"
+          th:errors="*{name}"></span>
+    <br><br>
+
+    Rating:
+    <input type="number" step="0.1" th:field="*{rating}">
+    <span style="color:red"
+          th:if="${#fields.hasErrors('rating')}"
+          th:errors="*{rating}"></span>
+    <br><br>
+
+    Genre:
+    <select th:field="*{genre}">
+        <option value="">--Select Genre--</option>
+        <option value="Drama">Drama</option>
+        <option value="Fiction">Fiction</option>
+        <option value="Satire">Satire</option>
+    </select>
+    <span style="color:red"
+          th:if="${#fields.hasErrors('genre')}"
+          th:errors="*{genre}"></span>
+    <br><br>
+
+    <button type="submit">Save Movie</button>
+</form>
+
+<hr>
+
+
+<h2>Search Movie By Category</h2>
+
+<form action="/search" method="post">
+    <select name="genre">
+        <option value="">--Select Genre--</option>
+        <option value="Drama">Drama</option>
+        <option value="Fiction">Fiction</option>
+        <option value="Satire">Satire</option>
+    </select>
+
+    <button type="submit">Search</button>
+</form>
+
+<hr>
+
+
+<h2>All Movies</h2>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Rating</th>
+        <th>Genre</th>
+        <th>Actions</th>
+    </tr>
+
+    <tr th:each="m : ${movies}">
+        <td th:text="${m.id}"></td>
+        <td th:text="${m.name}"></td>
+        <td th:text="${m.rating}"></td>
+        <td th:text="${m.genre}"></td>
+
+        <td>
+            <a th:href="@{/edit/{id}(id=${m.id})}">Edit</a> |
+            <a th:href="@{/delete/{id}(id=${m.id})}">Delete</a>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
+
+-->
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>All Movies</title>
+</head>
+<body>
+
+<h1>All Movies</h1>
+
+<a href="/add">Add Movie</a> |
+<a href="/search">Search Movie</a>
+
+<br><br>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Rating</th>
+        <th>Genre</th>
+        <th>Action</th>
+    </tr>
+
+    <tr th:each="m : ${movies}">
+        <td th:text="${m.id}"></td>
+        <td th:text="${m.name}"></td>
+        <td th:text="${m.rating}"></td>
+        <td th:text="${m.genre}"></td>
+
+        <td>
+            <a th:href="@{/edit/{id}(id=${m.id})}">Edit</a> |
+            <a th:href="@{/delete/{id}(id=${m.id})}">Delete</a>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
